@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pather Dabi</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#14213d;--bg:#fff;--mist:#f2f4f8;--line:#d5dae5}
+@media(prefers-color-scheme:dark){:root{--ink:#e8ecf5;--bg:#121a2b;--mist:#1b2336;--line:#33405c}}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{font:16px/1.45 "Atkinson Hyperlegible",system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+#map{position:fixed;inset:0 0 calc(54px + env(safe-area-inset-bottom,0px)) 0}#map.adding{cursor:crosshair}
+#chips{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);left:8px;right:56px;z-index:1000;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:14px;padding:5px 11px;border-radius:99px;display:flex;gap:6px;align-items:center;white-space:nowrap;cursor:pointer}
+.chip i{width:10px;height:10px;border-radius:50%}.chip[aria-pressed=false]{opacity:.45}
+#nav{position:fixed;left:0;right:0;bottom:0;z-index:1002;height:calc(54px + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);display:flex;background:var(--bg);border-top:1px solid var(--line)}
+#nav button{flex:1;border:0;background:none;color:var(--ink);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+#nav button:last-child{color:var(--ink)}#nav button[data-t=help]{color:#d64545}
+button.main{background:var(--ink);color:var(--bg);border:0;font:inherit;font-weight:700;padding:12px 20px;border-radius:99px;cursor:pointer}
+button.sub,button.item{background:var(--bg);color:var(--ink);border:1px solid var(--line);font:inherit;font-size:14px;padding:7px 12px;border-radius:10px;cursor:pointer}
+button.item{display:block;width:100%;text-align:left;margin-bottom:8px}button.item small{display:block;opacity:.75}
+#addBtn{position:fixed;right:12px;bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:1001;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+#note{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 50px);z-index:1003;background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:10px;font-size:15px;max-width:92%;text-align:center}
+#panel{position:fixed;left:0;right:0;bottom:calc(54px + env(safe-area-inset-bottom,0px));z-index:1001;max-width:480px;margin:0 auto;max-height:68vh;overflow:auto;background:var(--bg);border-top:1px solid var(--line);border-radius:16px 16px 0 0;padding:14px 16px;box-shadow:0 -4px 24px rgba(0,0,0,.25)}
+.ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:18px}.ph button{border:0;background:none;color:var(--ink);font-size:20px;cursor:pointer}
+#panel input[type=text],#panel textarea,.pop input{width:100%;font:inherit;color:var(--ink);background:var(--mist);border:1px solid var(--line);border-radius:10px;padding:9px;margin:6px 0}
+.row{display:flex;gap:8px;justify-content:flex-end;margin-top:8px;flex-wrap:wrap}.rl{display:flex;gap:8px;align-items:center;margin:6px 0}.rl span{flex:1;overflow-wrap:anywhere;font-size:14px}.m{opacity:.75}
+.hidden{display:none!important}
+.pop{min-width:210px;font:15px/1.4 "Atkinson Hyperlegible",system-ui,sans-serif;color:#14213d}.pop p{margin:6px 0;white-space:pre-wrap;overflow-wrap:anywhere}.pop small{color:#5b6478}
+.pop .cat{font-weight:700;display:flex;gap:6px;align-items:center}.pop .cat i{width:10px;height:10px;border-radius:50%}
+.pop ul{list-style:none;margin:8px 0;padding:0;max-height:120px;overflow:auto}.pop li{border-top:1px solid #d5dae5;padding:4px 0;overflow-wrap:anywhere}
+.pop button{font:inherit;font-size:14px;border:1px solid #d5dae5;background:#fff;border-radius:8px;padding:4px 9px;cursor:pointer;color:#14213d}.pop button.on{background:#14213d;color:#fff}.pop button.link{border:0;padding:0;text-decoration:underline;background:none}
+.pop .vr,.pop .add{display:flex;gap:6px;margin:6px 0}.pop .add input{background:#f2f4f8;color:#14213d;margin:0}
+.bub{background:var(--mist);border-radius:12px;padding:6px 10px;margin:6px 0;max-width:85%;overflow-wrap:anywhere}.bub.me{margin-left:auto;background:var(--line)}.bub small{opacity:.7;display:block}
+#syncBtn{position:fixed;left:12px;bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:1001;background:#ffb703;color:#14213d;border:2px solid #14213d;font:inherit;font-weight:700;padding:11px 16px;border-radius:99px;box-shadow:0 2px 10px rgba(0,0,0,.35);cursor:pointer}
+details{border-bottom:1px solid var(--line);padding:6px 0}summary{font-weight:700;cursor:pointer}details p{margin:6px 0}
+:focus-visible{outline:3px solid #e08a1e;outline-offset:2px}
+</style></head><body>
+<div id="map"></div><div id="chips"></div><div id="note" class="hidden"></div>
+<button class="main" id="addBtn">Add a pin</button><button id="syncBtn">⇄ Sync</button>
+<nav id="nav"><button data-t="map">Map</button><button data-t="help">Help</button><button data-t="chat">Chats</button><button data-t="guide">Guide</button><button data-t="me">Me</button><button data-t="set">Settings</button></nav>
+<div id="panel" class="hidden"></div><input type="file" id="bfile" accept=".geojson,.json,application/json" class="hidden">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script type="module">
+import{generateSecretKey,getPublicKey,finalizeEvent,verifyEvent,getEventHash,nip44,nip19}from"https://esm.sh/nostr-tools@2.7.2";
+const APP="pather-dabi-v1",HELP="help needed",DEF=["wss://relay.damus.io","wss://nos.lol","wss://relay.primal.net"];
+const EMBEDDED_BOUNDARY=``; // paste the official India GeoJSON between the backticks to embed it in this file
+const $=s=>document.querySelector(s),now=()=>Math.floor(Date.now()/1000);
+const h=(t,p={},...c)=>{const e=document.createElement(t);for(const k in p)k==="class"?e.className=p[k]:k.startsWith("on")?e.addEventListener(k.slice(2),p[k]):e.setAttribute(k,p[k]);e.append(...c);return e};
+const hex=b=>[...b].map(x=>x.toString(16).padStart(2,"0")).join(""),unhex=s=>Uint8Array.from(s.match(/../g).map(x=>parseInt(x,16)));
+const ls=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}},lsw=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
+const note=(m,ms=6000)=>{const n=$("#note");n.textContent=m;n.classList.remove("hidden");clearTimeout(note.t);note.t=setTimeout(()=>n.classList.add("hidden"),ms)};
+const left=e=>{const m=Math.max(1,Math.round((e-now())/60));return m>=90?Math.round(m/60)+" h":m+" min"};
+const norm=s=>{s=s.toLowerCase().replace(/[^\p{L}\p{N} -]/gu,"").replace(/[\s-]+/g," ").trim().slice(0,24);return s.replace(/ /g,"")==="helpneeded"?HELP:s};
+const col=x=>x===HELP?"#d64545":`hsl(${Math.abs([...x].reduce((a,c)=>a*31+c.charCodeAt(0)|0,7))%360},62%,46%)`;
+const lab=x=>x===HELP?"HELP NEEDED":x;
+let sk;try{const s=localStorage.getItem("pb_sk");if(s)sk=unhex(s)}catch{}
+if(!sk){sk=generateSecretKey();try{localStorage.setItem("pb_sk",hex(sk))}catch{}}
+const pk=getPublicKey(sk);
+
+/* map: borderless base layers + official boundary overlay */
+const map=L.map("map",{zoomControl:false,minZoom:3,worldCopyJump:true}).setView([22.5,80],5);
+L.control.zoom({position:"topright"}).addTo(map);
+const at="Tiles © Esri",es=n=>`https://server.arcgisonline.com/ArcGIS/rest/services/${n}/MapServer/tile/{z}/{y}/{x}`;
+const bases={"Satellite":L.tileLayer(es("World_Imagery"),{maxZoom:18,attribution:at}),
+"Relief":L.tileLayer(es("World_Shaded_Relief"),{maxZoom:18,maxNativeZoom:13,attribution:at}),
+"Physical":L.tileLayer(es("World_Physical_Map"),{maxZoom:18,maxNativeZoom:8,attribution:at}),
+"Street":L.tileLayer(es("World_Street_Map"),{maxZoom:18,maxNativeZoom:17,attribution:at})};
+(bases[ls("pb_base","Satellite")]||bases.Satellite).addTo(map);
+L.control.layers(bases,null,{position:"topright"}).addTo(map);map.attributionControl.addAttribution("India outline © OpenStreetMap contributors");
+map.on("baselayerchange",e=>lsw("pb_base",e.name));
+let bl=null;const draw=g=>{if(bl)map.removeLayer(bl);bl=L.geoJSON(g,{interactive:false,style:{color:"#ffd166",weight:2,fill:false}}).addTo(map)};
+(()=>{let t=EMBEDDED_BOUNDARY.trim();if(!t)try{t=localStorage.getItem("pb_boundary")||""}catch{}
+try{if(t)return draw(JSON.parse(t))}catch{}note("No India boundary loaded. Open Settings to load the official GeoJSON.",12000)})();
+$("#bfile").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const t=await f.text();draw(JSON.parse(t));try{localStorage.setItem("pb_boundary",t)}catch{note("Loaded for this session only. Paste it into EMBEDDED_BOUNDARY to keep it.")}}catch{note("That file isn't valid GeoJSON.")}};
+
+/* state */
+const pins=new Map(),votes=new Map(),comments=new Map(),profiles=new Map(),contacts=new Map(),seen=new Set(),hidden=new Set(),markers=new Map(),asked=new Set(),msgs=new Map(),gname=new Map();
+const layer=L.layerGroup().addTo(map);let openKey=null,openPopup=null,panelFn=null,tm,wt;
+const tag=(e,n)=>(e.tags.find(t=>t[0]===n)||[])[1];
+const nm=p=>(profiles.get(p)||{}).name||nip19.npubEncode(p).slice(0,12)+"…";
+const tally=a=>{let up=0,down=0;for(const x of(votes.get(a)||new Map()).values())x.v>0?up++:down++;return{up,down}};
+/* lifespan rules: help = 12 h; others = 2 h, 24 h with >10 upvotes, removed at net -3 */
+function status(k){const p=pins.get(k);if(!p||p.d.del)return null;const t=p.ev.created_at,{up,down}=tally("30078:"+k);
+if(p.d.h===HELP){const end=t+43200;return now()<end?{end,up,down}:null}
+if(up-down<=-3)return null;const end=t+(up>10?86400:7200);return now()<end?{end,up,down}:null}
+function parsePin(c){try{const d=JSON.parse(c);if(d.del)return{del:1};const x=norm(String(d.h||""));
+if(typeof d.lat!=="number"||typeof d.lng!=="number"||Math.abs(d.lat)>90||Math.abs(d.lng)>180||!x||typeof d.text!=="string")return null;
+return{lat:d.lat,lng:d.lng,h:x,text:d.text.slice(0,280)}}catch{return null}}
+function want(p){if(profiles.has(p)||asked.has(p))return;asked.add(p);clearTimeout(wt);wt=setTimeout(()=>req("pf",[{kinds:[0],authors:[...asked]}]),500)}
+const later=()=>{clearTimeout(tm);tm=setTimeout(()=>{render();if(panelFn)panelFn();if(openKey&&openPopup)openPopup.setContent(popup(openKey))},300)};
+function ingest(ev){
+if(seen.has(ev.id)||!verifyEvent(ev))return;seen.add(ev.id);const k=ev.kind;
+if(k===0){try{const d=JSON.parse(ev.content),c=profiles.get(ev.pubkey);if(!c||c.t<ev.created_at)profiles.set(ev.pubkey,{t:ev.created_at,name:String(d.name||"").slice(0,40),about:String(d.about||"").slice(0,200)})}catch{}return keep(ev)}
+if(k===3){const c=contacts.get(ev.pubkey);if(!c||c.t<ev.created_at){const tg=ev.tags.filter(t=>t[0]==="p");contacts.set(ev.pubkey,{t:ev.created_at,tags:tg,set:new Set(tg.map(t=>t[1]))})}return keep(ev)}
+if(k===1059){const mine=tag(ev,"p")===pk,ex=+tag(ev,"expiration");if(!mine&&!(ex>now()&&ex<now()+90000))return;if(mine){const r=unwrap(ev);if(r&&r.id===getEventHash(r))addMsg(r)}return keep(ev)}
+if(!ev.tags.some(t=>t[0]==="t"&&t[1]===APP)||ev.created_at<now()-86400)return;
+if(k===30078){const d=tag(ev,"d");if(!d)return;const key=ev.pubkey+":"+d,c=pins.get(key);if(c&&c.ev.created_at>=ev.created_at)return;const x=parsePin(ev.content);if(!x)return;pins.set(key,{ev,d:x});want(ev.pubkey)}
+else if(k===7){const a=tag(ev,"a");if(!a||!/^30078:[0-9a-f]{64}:\w+$/.test(a))return;const v=ev.content==="+"?1:ev.content==="-"?-1:0;if(!v)return;
+const m=votes.get(a)||new Map(),o=m.get(ev.pubkey);if(!o||o.t<=ev.created_at)m.set(ev.pubkey,{v,t:ev.created_at});votes.set(a,m)}
+else if(k===1){const a=tag(ev,"a");if(!a)return;const l=comments.get(a)||[];l.push(ev);comments.set(a,l)}
+keep(ev)}
+
+function render(){
+const vis=new Map(),hs=new Map();for(const[k,p]of pins)if(status(k)){vis.set(k,p);hs.set(p.d.h,(hs.get(p.d.h)||0)+1)}
+for(const[k,m]of markers)if(!vis.has(k)||hidden.has(vis.get(k).d.h)){layer.removeLayer(m);markers.delete(k)}
+for(const[k,p]of vis){if(markers.has(k)||hidden.has(p.d.h))continue;
+const m=L.circleMarker([p.d.lat,p.d.lng],{radius:p.d.h===HELP?14:9,color:"#fff",weight:2,fillColor:col(p.d.h),fillOpacity:1});
+m.bindPopup(()=>popup(k),{maxWidth:280});m.on("popupopen",e=>{openKey=k;openPopup=e.popup});m.on("popupclose",()=>{if(openKey===k){openKey=null;openPopup=null}});layer.addLayer(m);markers.set(k,m)}
+$("#chips").replaceChildren(...[...new Set([...hs.keys(),...hidden])].sort().map(x=>h("button",{class:"chip","aria-pressed":String(!hidden.has(x)),onclick:()=>{hidden.has(x)?hidden.delete(x):hidden.add(x);render()}},h("i",{style:"background:"+col(x)}),lab(x))))}
+setInterval(()=>{for(const[i,m]of msgs)if(m.t<now()-86400)msgs.delete(i);render()},60000);
+
+function popup(k){
+const p=pins.get(k),s=status(k);if(!s)return h("div",{class:"pop"},"This pin has expired or was removed.");
+const a="30078:"+k,ev=p.ev,mine=ev.pubkey===pk,mv=(votes.get(a)||new Map()).get(pk);
+const cast=v=>{const e=finalizeEvent({kind:7,created_at:now(),tags:[["a",a],["t",APP]],content:v>0?"+":"-"},sk);if(send(e))ingest(e)};
+const vb=(v,n)=>{const b=h("button",{class:mv&&mv.v===v?"on":"",onclick:()=>cast(v)},(v>0?"👍 ":"👎 ")+n);if(mine)b.disabled=true;return b};
+const inp=h("input",{placeholder:"Add a comment",maxlength:"200"});
+const box=h("div",{class:"pop"},h("div",{class:"cat"},h("i",{style:"background:"+col(p.d.h)}),lab(p.d.h)),h("p",{},p.d.text),
+h("small",{},left(s.end)+" left · by "),h("button",{class:"link",onclick:()=>openProfile(ev.pubkey)},nm(ev.pubkey)),
+h("div",{class:"vr"},vb(1,s.up),vb(-1,s.down)),
+h("ul",{},...(comments.get(a)||[]).sort((x,y)=>x.created_at-y.created_at).map(x=>h("li",{},x.content.slice(0,200)," ",h("small",{},nm(x.pubkey))))),
+h("div",{class:"add"},inp,h("button",{onclick:()=>{const v=inp.value.trim();if(!v)return;const e=finalizeEvent({kind:1,created_at:now(),tags:[["a",a],["t",APP]],content:v},sk);if(send(e)){ingest(e);inp.value=""}}},"Post")));
+if(mine)box.append(h("button",{onclick:()=>{if(!confirm("Delete this pin?"))return;const e=finalizeEvent({kind:30078,created_at:now(),tags:[["d",tag(ev,"d")],["t",APP]],content:JSON.stringify({del:1})},sk);if(send(e)){ingest(e);map.closePopup()}}},"Delete pin"));
+box.append(h("button",{onclick:()=>openShare(k)},"Share"));
+return box}
+
+/* relays */
+let relays=ls("pb_relays",DEF.map(u=>({u,on:true})));const socks=new Map(),subs=new Map();
+function connect(u){if(socks.has(u))return;let ws;try{ws=new WebSocket(u)}catch{return}socks.set(u,ws);
+ws.onopen=()=>{for(const[id,f]of subs)ws.send(JSON.stringify(["REQ",id,...f]));flush()};
+ws.onmessage=e=>{try{const m=JSON.parse(e.data);if(m[0]==="EVENT")ingest(m[2])}catch{}};
+ws.onclose=()=>{socks.delete(u);setTimeout(sync,6000)};ws.onerror=()=>ws.close()}
+function sync(){for(const r of relays)if(r.on)connect(r.u);for(const[u,ws]of socks)if(!relays.some(r=>r.on&&r.u===u))ws.close()}
+function req(id,f){subs.set(id,f);for(const ws of socks.values())if(ws.readyState===1)ws.send(JSON.stringify(["REQ",id,...f]))}
+function send(ev){let n=0;for(const ws of socks.values())if(ws.readyState===1){ws.send(JSON.stringify(["EVENT",ev]));n++}if(!n){store.set(ev.id,ev);unsent.add(ev.id);saveSoon();note("Offline: saved on this device. It will be sent when a relay connects, or via Sync.")}return n||1}
+const since=now()-86400;
+req("pb",[{kinds:[30078,7,1],"#t":[APP],since},{kinds:[0,3],authors:[pk]},{kinds:[1059],"#p":[pk],since:now()-90000},{kinds:[3],"#p":[pk],limit:500}]);sync();
+
+/* panels */
+function show(t,node,live){$("#panel").replaceChildren(h("div",{class:"ph"},h("b",{},t),h("button",{onclick:closePanel,"aria-label":"Close"},"✕")),node);$("#panel").classList.remove("hidden");panelFn=live||null}
+let adding=false,temp=null,pt=null,ring=null,myPos=null;
+function closePanel(){cleanups.splice(0).forEach(f=>f());$("#panel").classList.add("hidden");panelFn=null;adding=false;pt=null;$("#map").classList.remove("adding");$("#addBtn").classList.remove("hidden");if(temp){map.removeLayer(temp);temp=null}if(ring){map.removeLayer(ring);ring=null}}
+$("#nav").onclick=e=>{const t=e.target.dataset.t;if(!t)return;closePanel();({map(){},help:openHelp,chat:openChats,guide:openGuide,me:openMe,set:openSettings})[t]()};
+
+function openHelp(){const d=()=>{const it=[...pins].filter(([k,p])=>p.d.h===HELP&&status(k)).sort((a,b)=>b[1].ev.created_at-a[1].ev.created_at);
+show("Help needed",h("div",{},...(it.length?it.map(([k,p])=>{const s=status(k);return h("button",{class:"item",onclick:()=>{closePanel();map.flyTo([p.d.lat,p.d.lng],15);setTimeout(()=>markers.get(k)&&markers.get(k).openPopup(),900)}},h("b",{},p.d.text),h("small",{},`${left(s.end)} left · 👍 ${s.up} 👎 ${s.down} · ${(comments.get("30078:"+k)||[]).length} comments · ${nm(p.ev.pubkey)}`))}):[h("p",{class:"m"},"No active help requests.")])),d)};d()}
+
+$("#addBtn").onclick=async()=>{note("Checking your location…",15000);try{myPos=await here()}catch(m){return note(m)}
+if(myPos.accuracy>2000)return note("Your location isn't precise enough to post a pin. Turn on GPS and try again.");
+adding=true;$("#map").classList.add("adding");$("#addBtn").classList.add("hidden");ring=L.circle([myPos.latitude,myPos.longitude],{radius:MAXKM*1000,color:"#ffb703",weight:2,dashArray:"6 6",fill:false,interactive:false}).addTo(map);map.fitBounds(ring.getBounds());note("Tap the map inside the dashed circle, within 10 km of where you are.",60000)};
+map.on("click",e=>{if(!adding)return;if(km(myPos.latitude,myPos.longitude,e.latlng.lat,e.latlng.lng)>MAXKM)return note("That spot is more than 10 km from you. You can only post pins near your own location.");pt=e.latlng;$("#note").classList.add("hidden");if(temp)map.removeLayer(temp);temp=L.circleMarker(pt,{radius:10,color:"#fff",weight:2,fillColor:"#14213d",fillOpacity:1}).addTo(map);openForm()});
+function openForm(){const hd=h("input",{type:"text",list:"hl",placeholder:"Heading, e.g. flood or road blocked",maxlength:"24"}),tx=h("textarea",{rows:"3",maxlength:"280",placeholder:"What should people know?"});
+const dl=h("datalist",{id:"hl"},...[...new Set([...pins.values()].map(p=>p.d.h))].filter(x=>x!==HELP).map(x=>h("option",{value:x})));
+show("New pin",h("div",{},h("button",{class:"chip",onclick:()=>hd.value="HELP NEEDED"},"Help needed (lasts 12 h)"),hd,dl,tx,h("div",{class:"row"},h("button",{class:"sub",onclick:closePanel},"Cancel"),h("button",{class:"main",onclick:async()=>{
+const x=norm(hd.value),t=tx.value.trim();if(!x||!t)return note("Add a heading and a comment.");let c;try{c=await here()}catch(m){return note(m)}if(c.accuracy>2000||km(c.latitude,c.longitude,pt.lat,pt.lng)>MAXKM)return note("You can only post pins within 10 km of where you are right now.");
+const exp=now()+(x===HELP?43200:86400),ev=finalizeEvent({kind:30078,created_at:now(),tags:[["d",hex(crypto.getRandomValues(new Uint8Array(4)))],["t",APP],["t",x],["expiration",String(exp)]],content:JSON.stringify({lat:+pt.lat.toFixed(5),lng:+pt.lng.toFixed(5),h:x,text:t})},sk);
+if(send(ev)){ingest(ev);closePanel()}}},"Publish pin"))))}
+
+function setFollow(p,on){const c=contacts.get(pk),tg=(c?c.tags:[]).filter(t=>t[1]!==p);if(on)tg.push(["p",p]);const e=finalizeEvent({kind:3,created_at:now(),tags:tg,content:""},sk);if(send(e))ingest(e)}
+function openProfile(p){if(p===pk)return openMe();want(p);req("fl",[{kinds:[3],"#p":[p],limit:500},{kinds:[0,3],authors:[p]}]);
+const d=()=>{const pr=profiles.get(p)||{},fg=(contacts.get(p)||{set:new Set()}).set.size,fr=[...contacts.values()].filter(c=>c.set.has(p)).length,f=(contacts.get(pk)||{set:new Set()}).set.has(p);
+show(nm(p),h("div",{},h("p",{},pr.about||"No bio yet."),h("p",{class:"m"},`${fr} followers · following ${fg}`),h("button",{class:f?"sub":"main",onclick:()=>setFollow(p,!f)},f?"Following":"Follow"),h("button",{class:"sub",onclick:()=>openChat([pk,p])},"Message")),d)};d()}
+function openMe(){const pr=profiles.get(pk)||{},n=h("input",{type:"text",maxlength:"40",placeholder:"Display name",value:pr.name||""}),a=h("textarea",{rows:"2",maxlength:"200",placeholder:"A short bio"},pr.about||"");
+const c=contacts.get(pk),fr=[...contacts.values()].filter(x=>x.set.has(pk)).length;
+show("My profile",h("div",{},n,a,h("p",{class:"m"},`${fr} followers · following ${c?c.set.size:0}`),h("div",{class:"row"},h("button",{class:"sub",onclick:openMyQR},"My follow QR"),h("button",{class:"sub",onclick:openScanFollow},"Scan a follow QR")),h("div",{class:"row"},
+h("button",{class:"sub",onclick:async()=>{const k=nip19.nsecEncode(sk);try{await navigator.clipboard.writeText(k);note("Key copied. Keep it private.")}catch{prompt("Copy your key:",k)}}},"Back up key"),
+h("button",{class:"sub",onclick:()=>{const v=prompt("Paste a saved key (nsec…) to restore it:");if(!v)return;try{const x=nip19.decode(v.trim());if(x.type!=="nsec")throw 0;localStorage.setItem("pb_sk",hex(x.data));location.reload()}catch{note("Not a valid key.")}}},"Restore key"),
+h("button",{class:"main",onclick:()=>{const e=finalizeEvent({kind:0,created_at:now(),tags:[],content:JSON.stringify({name:n.value.trim(),about:a.value.trim()})},sk);if(send(e)){ingest(e);note("Profile saved.")}}},"Save"))))}
+function openSettings(){const box=h("div",{},h("b",{},"Relays"),...relays.map(r=>{const c=h("input",{type:"checkbox"});c.checked=r.on;c.onchange=()=>{r.on=c.checked;lsw("pb_relays",relays);sync()};
+return h("div",{class:"rl"},c,h("span",{},r.u),h("button",{class:"sub",onclick:()=>{relays=relays.filter(x=>x!==r);lsw("pb_relays",relays);sync();openSettings()}},"Remove"))}));
+const u=h("input",{type:"text",placeholder:"wss://your-relay.example"});
+box.append(u,h("div",{class:"row"},h("button",{class:"sub",onclick:()=>{const v=u.value.trim();if(!/^wss:\/\/[^\s/]+[^\s]*$|^ws:\/\/(localhost|127\.0\.0\.1)[^\s]*$/.test(v))return note("Use a wss:// address.");if(!relays.some(r=>r.u===v)){relays.push({u:v,on:true});lsw("pb_relays",relays);sync()}openSettings()}},"Add relay")),
+h("p",{class:"m"},"Map view: tap the layers icon on the map (Satellite, Relief, Physical, Street)."),h("div",{class:"row"},h("button",{class:"sub",onclick:()=>$("#bfile").click()},"Load India boundary file")));
+box.append(h("p",{class:"m"},"Pather Dabi is released under CC0 (public domain). Licences of the bundled libraries and the map data are in the README."));show("Settings",box)}
+
+/* messages: gift-wrapped encrypted DMs and groups; everything disappears after 24 h */
+const rnd=n=>Math.floor(Math.random()*n),hx=/^[0-9a-f]{64}$/,ago=t=>{const m=Math.round((now()-t)/60);return m<2?"now":m<90?m+" min":Math.round(m/60)+" h"};
+const nc=new Set();let ct;const wantC=ps=>{ps.forEach(p=>nc.add(p));clearTimeout(ct);ct=setTimeout(()=>req("gc",[{kinds:[3],authors:[...nc]}]),500)};
+function wrapFor(r,to){const seal=finalizeEvent({kind:13,created_at:now()-rnd(1800),tags:[],content:nip44.encrypt(JSON.stringify(r),nip44.getConversationKey(sk,to))},sk),es=generateSecretKey();
+return finalizeEvent({kind:1059,created_at:now()-rnd(1800),tags:[["p",to],["expiration",String(now()+86400)]],content:nip44.encrypt(JSON.stringify(seal),nip44.getConversationKey(es,to))},es)}
+function unwrap(w){try{const s=JSON.parse(nip44.decrypt(w.content,nip44.getConversationKey(sk,w.pubkey)));if(s.kind!==13||!verifyEvent(s))return;const r=JSON.parse(nip44.decrypt(s.content,nip44.getConversationKey(sk,s.pubkey)));return r.kind===14&&r.pubkey===s.pubkey?r:void 0}catch{}}
+function addMsg(r){if(typeof r.content!=="string"||r.created_at<now()-86400||r.created_at>now()+300||msgs.has(r.id))return;
+const ps=[...new Set([r.pubkey,...r.tags.filter(t=>t[0]==="p").map(t=>t[1])])].sort();if(ps.length<2||ps.length>12||!ps.every(p=>hx.test(p))||!ps.includes(pk))return;
+const sj=tag(r,"subject"),pn=(r.tags.find(t=>t[0]==="pin")||[]).slice(1),ok=pn.length===3&&/^30078:[0-9a-f]{64}:\w+$/.test(pn[0])&&Math.abs(+pn[1])<=90&&Math.abs(+pn[2])<=180;
+msgs.set(r.id,{from:r.pubkey,ps,cid:ps.join(),text:r.content.slice(0,1000),t:r.created_at,pin:ok?pn:null});
+if(sj&&ps.length>2)gname.set(ps.join(),String(sj).slice(0,40));ps.forEach(x=>want(x));if(ps.length>2)wantC(ps)}
+/* group rule: every member must follow every other member */
+function groupBad(ps){for(const a of ps){const c=contacts.get(a);if(!c)return"Still loading "+nm(a)+"'s follow list.";for(const b of ps)if(a!==b&&!c.set.has(b))return nm(a)+" doesn't follow "+nm(b)+"."}return null}
+function sendMsg(ps,text,pin){const cid=ps.join();if(ps.length>2){const b=groupBad(ps);if(b){note(b);return 0}}
+const tg=ps.filter(p=>p!==pk).map(p=>["p",p]),sj=ps.length>2&&gname.get(cid);if(sj)tg.push(["subject",sj]);if(pin)tg.push(["pin",...pin]);
+const r={kind:14,created_at:now(),tags:tg,content:text,pubkey:pk};r.id=getEventHash(r);let n=0;for(const to of ps)n+=send(wrapFor(r,to))?1:0;if(n){addMsg(r);later()}return n}
+const vis=cid=>[...msgs.values()].filter(m=>m.cid===cid&&m.t>now()-86400).sort((a,b)=>a.t-b.t);
+const title=cid=>{const ps=cid.split(",");return ps.length===2?nm(ps.find(p=>p!==pk)||pk):gname.get(cid)||ps.filter(p=>p!==pk).map(nm).join(", ")};
+const fols=()=>(contacts.get(pk)||{set:new Set()}).set;
+function openChats(){req("mc",[{kinds:[3],authors:[...fols()]}]);const d=()=>{const cs=new Map();for(const m of msgs.values()){if(m.t<=now()-86400)continue;const c=cs.get(m.cid)||{ps:m.ps,ms:[]};c.ms.push(m);cs.set(m.cid,c)}
+const ok=[],rq=[];for(const e of cs){const c=e[1];if(c.ps.length>2&&groupBad(c.ps))continue;(c.ps.length===2&&!fols().has(c.ps.find(p=>p!==pk))&&!c.ms.some(m=>m.from===pk)?rq:ok).push(e)}
+const row=([cid,c])=>{const l=c.ms.sort((a,b)=>a.t-b.t).at(-1);return h("button",{class:"item",onclick:()=>openChat(c.ps)},h("b",{},title(cid)),h("small",{},(l.pin?"📍 ":"")+l.text.slice(0,60)+" · "+ago(l.t)))};
+show("Chats",h("div",{},h("div",{class:"row"},h("button",{class:"main",onclick:openNewGroup},"New group")),...(ok.length?ok.map(row):[h("p",{class:"m"},"No messages yet. Open someone's profile to message them. Messages disappear after 24 hours.")]),...(rq.length?[h("b",{},"Requests (people you don't follow)"),...rq.map(row)]:[])),d)};d()}
+function openNewGroup(){const c=[...fols()].filter(p=>(contacts.get(p)||{set:new Set()}).set.has(pk)),pick=new Set(),nameIn=h("input",{type:"text",maxlength:"40",placeholder:"Group name"});wantC(c);
+show("New group",h("div",{},h("p",{class:"m"},"Everyone in a group must follow each other. Choose from people who follow you back."),nameIn,...(c.length?c.map(p=>{const k=h("input",{type:"checkbox"});k.onchange=()=>k.checked?pick.add(p):pick.delete(p);return h("label",{class:"rl"},k,h("span",{},nm(p)))}):[h("p",{class:"m"},"Nobody yet. Follow people who follow you back first.")]),
+h("div",{class:"row"},h("button",{class:"main",onclick:()=>{if(pick.size<2||pick.size>11)return note("Pick 2 to 11 people.");const ps=[pk,...pick].sort(),b=groupBad(ps);if(b)return note(b);gname.set(ps.join(),nameIn.value.trim()||"Group");openChat(ps)}},"Create group"))))}
+function openChat(ps){ps=[...new Set([...ps,pk])].sort();const cid=ps.join(),g=ps.length>2,list=h("div",{}),inp=h("input",{type:"text",maxlength:"1000",placeholder:"Message (disappears after 24 h)",onkeydown:e=>{if(e.key==="Enter")go()}});
+const go=()=>{const t=inp.value.trim();if(t&&sendMsg(ps,t))inp.value=""};
+const fill=()=>{const b=g&&groupBad(ps),ms=vis(cid);list.replaceChildren(...(b?[h("p",{class:"m"},"Group paused: "+b)]:ms.length?ms.map(m=>h("div",{class:"bub"+(m.from===pk?" me":"")},h("small",{},(m.from===pk?"You":nm(m.from))+" · "+ago(m.t)),h("div",{},m.text),m.pin?h("button",{class:"sub",onclick:()=>{closePanel();map.flyTo([+m.pin[1],+m.pin[2]],15);setTimeout(()=>{const mk=markers.get(m.pin[0].slice(6));if(mk)mk.openPopup()},900)}},"📍 Open shared pin"):"")):[h("p",{class:"m"},"No messages yet. They disappear after 24 hours.")]));$("#panel").scrollTop=1e6};
+show(title(cid),h("div",{},list,h("div",{class:"row"},inp,h("button",{class:"main",onclick:go},"Send"))),fill);fill()}
+function openShare(k){const p=pins.get(k),pn=["30078:"+k,String(p.d.lat),String(p.d.lng)],cs=new Map();
+for(const m of msgs.values())if(m.t>now()-86400&&!(m.ps.length>2&&groupBad(m.ps)))cs.set(m.cid,m.ps);for(const f of fols()){const ps=[pk,f].sort();cs.set(ps.join(),ps)}
+show("Share pin with…",h("div",{},...(cs.size?[...cs].map(([cid,ps])=>h("button",{class:"item",onclick:()=>{if(sendMsg(ps,`📍 ${lab(p.d.h)}: ${p.d.text}`.slice(0,300),pn)){closePanel();note("Pin shared.")}}},title(cid))):[h("p",{class:"m"},"Follow someone first to share pins.")])))}
+
+/* offline: local store, outbox, WebRTC sync (QR or pasted codes), file fallback */
+const KEEP=new Set([0,1,3,7,1059,30078]),store=new Map(),unsent=new Set(),cleanups=[];let sv,pc=null,dc=null,stream=null;
+function keep(ev){if(KEEP.has(ev.kind)&&JSON.stringify(ev).length<20000){store.set(ev.id,ev);saveSoon()}later()}
+function prune(){const t=now();for(const[i,e]of store){const x=+tag(e,"expiration"),old=e.kind===1059?(x?x<t:e.created_at<t-90000):e.kind===0||e.kind===3?false:e.created_at<t-86400;if(old){store.delete(i);unsent.delete(i)}}
+if(store.size>800)[...store.values()].sort((a,b)=>a.created_at-b.created_at).slice(0,store.size-800).forEach(e=>{store.delete(e.id);unsent.delete(e.id)})}
+const badge=()=>{$("#syncBtn").textContent="⇄ Sync"+(unsent.size?` (${unsent.size} waiting)`:"")};
+const saveSoon=()=>{clearTimeout(sv);sv=setTimeout(()=>{prune();try{localStorage.setItem("pb_store",JSON.stringify({ev:[...store.values()],un:[...unsent]}))}catch{}badge()},1000)};
+function load(){try{const d=JSON.parse(localStorage.getItem("pb_store")||"{}");(d.un||[]).forEach(i=>unsent.add(i));(d.ev||[]).forEach(e=>{if(e&&e.id&&!seen.has(e.id))ingest(e)})}catch{}badge()}
+function flush(){const o=[...socks.values()].filter(w=>w.readyState===1);if(!o.length||!unsent.size)return;for(const i of unsent){const e=store.get(i);if(e)for(const w of o)w.send(JSON.stringify(["EVENT",e]))}unsent.clear();saveSoon()}
+setInterval(flush,15000);$("#syncBtn").onclick=openSync;
+const stopSync=()=>{try{dc&&dc.close();pc&&pc.close()}catch{}pc=dc=null;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}};
+const gathered=p=>new Promise(r=>{if(p.iceGatheringState==="complete")return r();const t=setTimeout(r,4000);p.addEventListener("icegatheringstatechange",()=>{if(p.iceGatheringState==="complete"){clearTimeout(t);r()}})});
+async function pack(o){const j=JSON.stringify(o);if(!self.CompressionStream)return"R"+btoa(unescape(encodeURIComponent(j)));const z=new Uint8Array(await new Response(new Blob([j]).stream().pipeThrough(new CompressionStream("deflate-raw"))).arrayBuffer());let s="";z.forEach(c=>s+=String.fromCharCode(c));return"Z"+btoa(s)}
+async function unpack(t){t=t.trim();if(t[0]==="R")return JSON.parse(decodeURIComponent(escape(atob(t.slice(1)))));const b=Uint8Array.from(atob(t.slice(1)),c=>c.charCodeAt(0));return JSON.parse(await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).text())}
+function qrBox(code){const ta=h("textarea",{rows:"2",readonly:""},code),kids=[];try{const q=QR(0,"L");q.addData(code);q.make();const n=q.getModuleCount(),px=Math.max(2,Math.floor(Math.min(320,innerWidth-60)/(n+8))),cv=h("canvas",{width:(n+8)*px,height:(n+8)*px}),x=cv.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,cv.width,cv.height);x.fillStyle="#000";
+for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(q.isDark(r,c))x.fillRect((c+4)*px,(r+4)*px,px,px);cv.style.cssText="display:block;margin:8px auto;max-width:100%";kids.push(cv)}catch{}
+return h("div",{},...kids,ta,h("button",{class:"sub",onclick:async()=>{try{await navigator.clipboard.writeText(code);note("Code copied.")}catch{ta.select()}}},"Copy code"))}
+function inBox(label,onCode){const ta=h("textarea",{rows:"2",placeholder:"Or paste the code here"}),vid=h("video",{playsinline:"",style:"width:100%;border-radius:10px;display:none"});vid.muted=true;const use=t=>{t=t.trim();if(t)onCode(t)};
+const scan=async()=>{try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}})}catch{return note("Camera not available here. Paste the code instead.")}
+vid.srcObject=stream;vid.style.display="block";await vid.play();const cv=document.createElement("canvas"),cx=cv.getContext("2d",{willReadFrequently:true});
+const tick=()=>{if(!stream)return;if(vid.videoWidth){cv.width=vid.videoWidth;cv.height=vid.videoHeight;cx.drawImage(vid,0,0);const r=jsQR(cx.getImageData(0,0,cv.width,cv.height).data,cv.width,cv.height);if(r&&r.data){stream.getTracks().forEach(t=>t.stop());stream=null;vid.style.display="none";return use(r.data)}}requestAnimationFrame(tick)};tick()};
+return h("div",{},h("b",{},label),vid,h("div",{class:"row"},h("button",{class:"sub",onclick:scan},"Scan with camera"),h("button",{class:"sub",onclick:()=>pickImage(use)},"Load photo of QR")),ta,h("div",{class:"row"},h("button",{class:"main",onclick:()=>use(ta.value)},"Use code")))}
+function wire(ch,st){dc=ch;let got=0,sent=0,d1=0,d2=0;const fin=()=>{if(d1&&d2){st(`Done. Received ${got} new items, sent ${sent}.`);flush();later();setTimeout(()=>{try{ch.close()}catch{}},800)}},tx=o=>ch.send(JSON.stringify(o));
+ch.onopen=()=>{st("Connected. Exchanging updates…");prune();tx({t:"inv",ids:[...store.keys()].map(i=>i.slice(0,16))})};
+ch.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch{return}
+if(m.t==="inv"){const mine=new Set([...store.keys()].map(i=>i.slice(0,16)));tx({t:"want",ids:(Array.isArray(m.ids)?m.ids:[]).filter(i=>typeof i==="string"&&i.length===16&&!mine.has(i)).slice(0,800)})}
+else if(m.t==="want"){const w=new Set(Array.isArray(m.ids)?m.ids:[]),out=[...store.values()].filter(x=>w.has(x.id.slice(0,16)));let b=[],n=0;const fl=()=>{if(b.length)tx({t:"ev",evs:b});b=[];n=0};for(const x of out){const l=JSON.stringify(x).length;if(n+l>30000)fl();b.push(x);n+=l}fl();sent=out.length;tx({t:"done"});d1=1;fin()}
+else if(m.t==="ev"){for(const x of Array.isArray(m.evs)?m.evs:[]){if(!x||typeof x.id!=="string"||seen.has(x.id))continue;ingest(x);if(store.has(x.id)){unsent.add(x.id);got++}}saveSoon()}
+else if(m.t==="done"){d2=1;fin()}}}
+function newPeer(st){stopSync();pc=new RTCPeerConnection({iceServers:[]});pc.onconnectionstatechange=()=>{if(pc&&pc.connectionState==="failed")st("Could not connect. Both phones must be on the same Wi-Fi or hotspot. Try again, or use the file option.")}}
+async function syncHost(){const st=h("p",{class:"m"},"Preparing…"),say=t=>st.textContent=t;show("Sync: start",h("div",{},st));cleanups.push(stopSync);
+try{newPeer(say);wire(pc.createDataChannel("pb"),say);await pc.setLocalDescription(await pc.createOffer());await gathered(pc);const code=await pack({s:pc.localDescription.sdp});say("1. Show this code to the other phone. 2. Then scan or paste the reply code it shows.");
+show("Sync: start",h("div",{},st,qrBox(code),inBox("Reply from the other phone",async t=>{try{const a=await unpack(t);await pc.setRemoteDescription({type:"answer",sdp:a.s});say("Connecting…")}catch{note("That code didn't work.")}})))}catch{note("Sync isn't supported in this browser. Use the file option.")}}
+function syncJoin(){const st=h("p",{class:"m"},""),say=t=>st.textContent=t;cleanups.push(stopSync);
+show("Sync: join",h("div",{},inBox("Code from the other phone",async t=>{try{const o=await unpack(t);newPeer(say);pc.ondatachannel=e=>wire(e.channel,say);await pc.setRemoteDescription({type:"offer",sdp:o.s});await pc.setLocalDescription(await pc.createAnswer());await gathered(pc);const code=await pack({s:pc.localDescription.sdp});
+say("Show this reply code to the other phone and keep this screen open.");show("Sync: join",h("div",{},st,qrBox(code)))}catch{note("That code didn't work.")}})))}
+function exportFile(){prune();const u=URL.createObjectURL(new Blob([JSON.stringify({app:APP,ev:[...store.values()]})],{type:"application/json"})),a=h("a",{href:u,download:"pather-dabi-updates.json"});document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000)}
+function importFile(){const i=h("input",{type:"file",accept:".json,application/json"});i.onchange=async()=>{try{const d=JSON.parse(await i.files[0].text());let n=0;for(const x of d.ev||[]){if(!x||typeof x.id!=="string"||seen.has(x.id))continue;ingest(x);if(store.has(x.id)){unsent.add(x.id);n++}}saveSoon();flush();note(`Imported ${n} new items.`)}catch{note("Couldn't read that file.")}};i.click()}
+function openSync(){closePanel();show("Sync",h("div",{},h("p",{class:"m"},`${unsent.size} item(s) waiting to reach the internet. Sync swaps updates with a phone nearby on the same Wi-Fi or hotspot. No internet needed.`),h("div",{class:"row"},h("button",{class:"main",onclick:syncHost},"Start (show code)"),h("button",{class:"main",onclick:syncJoin},"Join (scan code)")),
+h("p",{class:"m"},"Can't connect? Pass a file instead:"),h("div",{class:"row"},h("button",{class:"sub",onclick:exportFile},"Export file"),h("button",{class:"sub",onclick:importFile},"Import file")),h("p",{class:"m"},"Received items are checked for tampering and sent to relays once you're online.")))}
+const GUIDE=[["Getting started","Open the Me tab and set a display name. Your account is a key stored in this browser. Use Me → Back up key and save it somewhere private; if you lose it you lose your pins and chats."],
+["Adding a pin","Tap Add a pin. The app checks your location, because you can only post within 10 km of where you are. Tap the map inside the dashed circle, type a heading (like flood or road blocked) and a comment, then Publish. Pins stay for 2 hours, or 24 hours once they have more than 10 upvotes, and are removed if their score reaches −3."],
+["Asking for help","When adding a pin, tap Help needed. These show as large red markers and in the Help tab, and last 12 hours. Only the poster can delete them."],
+["Checking a pin","Tap a pin to see votes and comments. Tap the poster's name to see their profile and judge whether to trust it. Vote 👍 if the report is true, 👎 if it's wrong. You can't vote on your own pin."],
+["Following people","Open someone's profile (tap their name on a pin) and tap Follow."],
+["Follow with a QR","Me → My follow QR shows your code. Your friend opens Me → Scan a follow QR and points the camera at it, or taps Load photo of QR to use a picture taken with the normal camera app, then taps Follow. Scan each other's codes to follow each other, which is also how you can start a group chat."],
+["Chats","Open a profile and tap Message. Messages are encrypted and disappear after 24 hours. Messages from people you don't follow appear under Requests."],
+["Group chats","In Chats, tap New group. Everyone in a group must follow each other, so you can only pick people who follow you back. If someone unfollows, the group pauses."],
+["Sharing a pin","Tap a pin, tap Share, and choose a chat or someone you follow."],
+["Working offline","Anything you post without internet is saved on your phone and sent automatically when a relay connects. The orange ⇄ Sync button shows how many items are waiting."],
+["Sync two phones","Both phones must be on the same Wi-Fi or hotspot; internet isn't needed. Phone A: Sync → Start (show code). Phone B: Sync → Join, scan A's code, then show B's reply code. Phone A scans that reply. Updates swap automatically. If the camera doesn't work, photograph the QR with your normal camera and use Load photo of QR, or use Copy code and paste it. If connecting fails, use Export file and Import file."],
+["Map views","Tap the layers icon on the map: Satellite, Relief, Physical or Street. The gold line is the boundary you loaded in Settings. Street maps draw their own boundary lines underneath it."],
+["Relays","Relays are the servers that carry posts. In Settings you can switch relays off or add your own wss:// address."],
+["Privacy","Pins and votes are public and tied to your key, not your name. Chats are encrypted, but relays can see who is messaging whom. Your own location is checked on your phone for the 10 km rule and is never posted. Deleting asks relays to forget, but they may not."]];
+function openGuide(){show("Guide",h("div",{},h("p",{class:"m"},"Pather Dabi: a community map for local reports and calls for help."),...GUIDE.map(([t,x])=>h("details",{},h("summary",{},t),h("p",{},x)))))}
+
+/* QR from a photo, and follow-by-QR */
+async function decodeImg(f){const b=await createImageBitmap(f).catch(()=>null);if(!b)return null;
+for(const m of[1600,1000,600]){const k=Math.min(1,m/Math.max(b.width,b.height)),w=Math.round(b.width*k),hh=Math.round(b.height*k),cv=document.createElement("canvas");cv.width=w;cv.height=hh;const cx=cv.getContext("2d",{willReadFrequently:true});cx.drawImage(b,0,0,w,hh);
+const r=jsQR(cx.getImageData(0,0,w,hh).data,w,hh,{inversionAttempts:"attemptBoth"});if(r&&r.data)return r.data}return null}
+function pickImage(use){const i=h("input",{type:"file",accept:"image/*"});i.onchange=async()=>{const f=i.files[0];if(!f)return;note("Reading the photo…",3000);const t=await decodeImg(f);t?use(t):note("No QR found in that photo. Try again with the QR filling more of the picture and the screen bright.")};i.click()}
+function followTarget(t){t=t.trim().replace(/^nostr:/i,"");try{if(hx.test(t))return t;const d=nip19.decode(t);if(d.type==="npub")return d.data;if(d.type==="nprofile")return d.data.pubkey}catch{}return null}
+function openMyQR(){show("My follow QR",h("div",{},h("p",{class:"m"},"Let a friend scan this to find and follow you. Scan theirs too so you follow each other."),qrBox("nostr:"+nip19.npubEncode(pk)),h("div",{class:"row"},h("button",{class:"sub",onclick:openScanFollow},"Scan theirs"))))}
+function openScanFollow(){cleanups.push(stopSync);show("Scan a follow QR",h("div",{},inBox("Their follow QR",t=>{const p=followTarget(t);if(!p)return note("That QR isn't a follow code.");if(p===pk)return note("That's your own QR.");openProfile(p)})))}
+
+/* location rule: pins only within 10 km of the poster's own device location (checked on this device) */
+const MAXKM=10;
+const here=()=>new Promise((ok,no)=>{if(!navigator.geolocation)return no("This browser can't share your location, so you can't post pins.");navigator.geolocation.getCurrentPosition(p=>ok(p.coords),e=>no(e.code===1?"Allow location access to post pins.":"Couldn't get your location. Try again."),{enableHighAccuracy:true,timeout:12000,maximumAge:30000})});
+const km=(a,b,c,d)=>{const r=Math.PI/180,x=Math.sin((c-a)*r/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin((d-b)*r/2)**2;return 12742*Math.asin(Math.sqrt(x))};
+load();if(!ls("pb_seen",0)){lsw("pb_seen",1);setTimeout(()=>note("New here? Open the Guide tab.",10000),1500)}
+</script></body></html>
